@@ -1,4 +1,3 @@
-import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -18,11 +17,11 @@ import java.util.stream.Collectors;
 
 
 public class ResultAnalyzer implements TestWatcher, AfterAllCallback {
-    private List<TestResultStatus> testResultsStatus = new ArrayList<>();
+    private final List<TestResultStatus> testResultsStatus = new ArrayList<>();
     private static final String taskId = "139";
     
     private enum TestResultStatus {
-        SUCCESSFUL, ABORTED, FAILED, DISABLED;
+        SUCCESSFUL, ABORTED, FAILED, DISABLED
     }
 
     @Override
@@ -46,7 +45,7 @@ public class ResultAnalyzer implements TestWatcher, AfterAllCallback {
     }
 
     @Override
-    public void afterAll(ExtensionContext context) throws Exception {
+    public void afterAll(ExtensionContext context) {
         Map<TestResultStatus, Long> summary = testResultsStatus.stream()
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
@@ -55,7 +54,7 @@ public class ResultAnalyzer implements TestWatcher, AfterAllCallback {
         long failure = summary.get(TestResultStatus.FAILED) != null ? summary.get(TestResultStatus.FAILED) : 0;
 
         double score = (double) success / (success + failure);
-        String userId = "999999";
+        String userId = "304322";
 
         JSONObject json = new JSONObject();
         json.put("score", score);
@@ -64,18 +63,15 @@ public class ResultAnalyzer implements TestWatcher, AfterAllCallback {
         sendTestResult(json.toString());
     }
 
-    private void sendTestResult(String result) throws IOException {
-        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        try {
+    private void sendTestResult(String result) {
+        try (CloseableHttpClient httpClient = HttpClientBuilder.create().build()) {
             HttpPost request = new HttpPost("https://coursey-gpt-backend.herokuapp.com/nextgen/taskLog/saveJavaTasks");
             StringEntity params = new StringEntity(result);
             request.addHeader("content-type", "application/json");
             request.setEntity(params);
-            HttpResponse response = httpClient.execute(request);
-        } catch (Exception ex) {
+            httpClient.execute(request);
+        } catch (IOException ex) {
             ex.printStackTrace();
-        } finally {
-            httpClient.close();
         }
     }
 
